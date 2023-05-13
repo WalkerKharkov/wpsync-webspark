@@ -211,7 +211,7 @@ if ( ! function_exists( 'wpsync_webspark_get_price' ) ) {
 }
 
 // get valid file info from the lot of garbage you gave :)
-if ( ! function_exists('wpsync_webspark_get_image_file_info') ) {
+if ( ! function_exists( 'wpsync_webspark_get_image_file_info' ) ) {
     function wpsync_webspark_get_image_file_info( $maybe_path ) {
         $extensions = array(
             '.jpg',
