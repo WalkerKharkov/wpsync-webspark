@@ -103,11 +103,13 @@ if ( ! function_exists( 'wpsync_webspark_get_data' ) ) {
                             $product_image_id = $product->get_image_id();
                             $product_image_url = get_attached_file( $product_image_id );
                             $product_image_name = basename( $product_image_url );
-                            $new_product_image_name = basename( $new_data->picture );
+                            $new_picture_info = wpsync_webspark_get_image_file_info( $new_data->picture );
 
-                            if ( $product_image_name != $new_product_image_name ) {
-                                if ( ! is_wp_error( media_sideload_image( $new_data->picture, $product->get_id() ) ) ) {
-                                    $product->set_image_id( get_post_thumbnail_id( $product->get_id() ) );
+                            if ( $new_picture_info ) {
+                                if ( $product_image_name != $new_picture_info->name ) {
+                                    if ( ! is_wp_error( media_sideload_image( $new_picture_info->path, $product->get_id() ) ) ) {
+                                        $product->set_image_id( get_post_thumbnail_id( $product->get_id() ) );
+                                    }
                                 }
                             }
                         }
@@ -160,8 +162,12 @@ if ( ! function_exists( 'wpsync_webspark_get_data' ) ) {
                         $product->save(); // double save because we need the product id to set the picture
 
                         if ( isset( $uploaded_product_datum->picture ) ) {
-                            if ( ! is_wp_error( media_sideload_image( $uploaded_product_datum->picture, $product->get_id() ) ) ) {
-                                $product->set_image_id( get_post_thumbnail_id( $product->get_id() ) );
+                            $picture_info = wpsync_webspark_get_image_file_info( $uploaded_product_datum->picture );
+
+                            if ( $picture_info ) {
+                                if ( ! is_wp_error( media_sideload_image( $picture_info->path, $product->get_id() ) ) ) {
+                                    $product->set_image_id( get_post_thumbnail_id( $product->get_id() ) );
+                                }
                             }
                         }
 
@@ -201,6 +207,41 @@ if ( ! function_exists( 'wpsync_webspark_get_all_articles' ) ) {
 if ( ! function_exists( 'wpsync_webspark_get_price' ) ) {
     function wpsync_webspark_get_price( $string_price ) {
         return floatval( preg_replace( '/[^0-9.,]/', '', $string_price ) );
+    }
+}
+
+// get valid file info from the lot of garbage you gave :)
+if ( ! function_exists('wpsync_webspark_get_image_file_info') ) {
+    function wpsync_webspark_get_image_file_info( $maybe_path ) {
+        $extensions = array(
+            '.jpg',
+            '.jpeg',
+            '.png',
+            '.ico',
+            '.gif'
+        );
+
+        $path_data = explode( '/', $maybe_path );
+        $image_filename_found = false;
+
+        foreach ( $path_data as $key => $datum ) {
+            foreach ( $extensions as $extension ) {
+                if ( stripos( $datum, $extension ) !== false ) {
+                    $image_filename_found = true;
+                    $image_key = $key;
+                }
+            }
+        }
+
+        if ( $image_filename_found ) {
+            $file_info = new stdClass();
+            $file_info->name = $path_data[$image_key];
+            $file_info->path = implode( '/', array_slice( $path_data, 0, $image_key + 1 ) );
+
+            return $file_info;
+        }
+
+        return false;
     }
 }
 
